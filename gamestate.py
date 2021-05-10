@@ -46,4 +46,3 @@ class GameState:
 
     def whitesTurn(self):
         return self.whiteToMove
-        
