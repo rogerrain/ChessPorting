@@ -53,3 +53,4 @@ class King(Piece):
 class Space(Piece):
     def checkValidMoves(self, gs):
         pass
+    
