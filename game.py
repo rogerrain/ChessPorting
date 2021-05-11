@@ -3,8 +3,8 @@ import os
 from gamestate import GameState
 
 #Globals
-WIDTH = 480
-HEIGHT = 480
+WIDTH = 720
+HEIGHT = 720
 SQ_SIZE = HEIGHT // 8
 MAX_FPS = 60
 
