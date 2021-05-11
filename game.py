@@ -5,7 +5,7 @@ from gamestate import GameState
 #Globals
 WIDTH = 480
 HEIGHT = 480
-TILE_SIZE = HEIGHT // 8
+SQ_SIZE = HEIGHT // 8
 MAX_FPS = 60
 
 #Load resources
@@ -16,8 +16,8 @@ def loadImages():
     for piece in pieces:
         w = "w" + piece
         b = "b" + piece
-        images[w] = pg.transform.scale(pg.image.load(dir + w + ".png"), (TILE_SIZE, TILE_SIZE))
-        images[b] = pg.transform.scale(pg.image.load(dir + b + ".png"), (TILE_SIZE, TILE_SIZE))
+        images[w] = pg.transform.scale(pg.image.load(dir + w + ".png"), (SQ_SIZE, SQ_SIZE))
+        images[b] = pg.transform.scale(pg.image.load(dir + b + ".png"), (SQ_SIZE, SQ_SIZE))
 
     return images
 
@@ -46,7 +46,7 @@ def drawPieces(screen, board, images):
         for c in range(len(board)):
             name = board[r][c].getName()
             if name != "--":
-                screen.blit(images[name], pg.Rect(c*TILE_SIZE, r*TILE_SIZE, TILE_SIZE, TILE_SIZE))
+                screen.blit(images[name], pg.Rect(c*SQ_SIZE, r*SQ_SIZE, SQ_SIZE, SQ_SIZE))
 
 def drawBoard(screen, colours):
     '''
@@ -57,8 +57,24 @@ def drawBoard(screen, colours):
     for r in range(8):
         for c in range(8):
             colour = colours[((c + r) % 2)]
-            pg.draw.rect(screen, colour, pg.Rect(c*TILE_SIZE, r*TILE_SIZE, TILE_SIZE, TILE_SIZE))
+            pg.draw.rect(screen, colour, pg.Rect(c*SQ_SIZE, r*SQ_SIZE, SQ_SIZE, SQ_SIZE))
     return
+
+def squareDict(order, whitePOV):
+    '''
+    Returns a dictionary that converts window positions to rank or file names
+        string order: The characters that each rank or file will be named
+        Bool whitePOV: The orientation of the board on the window
+    '''
+    sd = {}
+    if not whitePOV:
+        order = order[::-1]
+
+    for item in enumerate(order):
+        sd[item[0]] = item[1]
+    
+    return sd
+
 
 def main():
     #Initialize the game
@@ -70,15 +86,28 @@ def main():
     gs = GameState()
     gs.makeDefaultBoard()
 
+    # Creating a dictionary for squares based on the position on the window
+    ranks = "87654321"
+    files = "abcdefgh"
+    rd = squareDict(ranks, True)
+    fd = squareDict(files, True)
+
     images = loadImages()
     drawBoard(screen, colours)
 
+    # Event Loop
     running = True
     while running:
         for e in pg.event.get():
             if e.type == pg.QUIT:
                 running = False
-                
+
+            elif e.type == pg.MOUSEBUTTONDOWN:
+                print("position: {a} ({c}{b})".format(a=e.pos, 
+                    b=rd[(e.pos[1]//SQ_SIZE)], c=fd[(e.pos[0]//SQ_SIZE)]))
+                rank = e.pos[1] // SQ_SIZE
+                file = e.pos[0] // SQ_SIZE
+
         drawBoard(screen, colours)
         drawPieces(screen, gs.getBoard(), images)
         clock.tick(MAX_FPS)
