@@ -38,6 +38,10 @@ class GameState:
         for rank in default:
             self.board.append([makePiece(name) for name in rank])
 
+        for r in range(8):
+            for c in range(8):
+                self.board[r][c].setPos(r, c)
+
     def getBoard(self):
         return self.board
 
