@@ -74,6 +74,17 @@ def drawGhost(screen, rank, file):
     screen.blit(whiteSquare, (file*SQ_SIZE, rank*SQ_SIZE))
     return
 
+def drawValidMoves(screen, moves):
+    '''
+    Draws a circle on all squares where the active piece can move to
+        pygame.Surface screen: The display window for the application
+        List moves: A list of tuples corresponding to the valid moves
+    '''
+    for move in moves:
+        m = (move[1]*SQ_SIZE + (SQ_SIZE // 2), move[0]*SQ_SIZE + (SQ_SIZE // 2))
+        pg.draw.circle(screen, pg.Color("green"), m, SQ_SIZE//6)
+    return
+
 def pieceFollowMouse(screen, name, images, x, y):
     '''
     Draws the active piece at the position of the mouse while LMB is held
@@ -129,6 +140,7 @@ def main():
     holdingRMB = False
 
     pieceActive = False
+    activeValidMoves = []
     xpos = 0
     ypos = 0
 
@@ -156,7 +168,8 @@ def main():
                         if (gs.whitesTurn() and gs.getBoard()[rank][file].getColour() == "w") or \
                         (not gs.whitesTurn() and gs.getBoard()[rank][file].getColour() == "b"):
                             pieceActive = True
-                            print(gs.getBoard()[rank][file].checkValidMoves(gs.getBoard()))
+                            activeValidMoves = gs.getBoard()[rank][file].checkValidMoves(gs.getBoard())
+                            print(activeValidMoves)
                         else:
                             pieceActive = False
                         
@@ -188,6 +201,7 @@ def main():
         # Draw extra things on top of those
         if pieceActive:
             drawGhost(screen, rank, file)
+            drawValidMoves(screen, activeValidMoves)
             name = gs.getBoard()[rank][file].getName()
             if holdingLMB:
                 pieceFollowMouse(screen, name, images, xpos, ypos)
