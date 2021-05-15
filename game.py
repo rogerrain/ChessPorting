@@ -112,6 +112,16 @@ def squareDict(order, whitePOV):
     
     return sd
 
+def movePiece(gs, activePiece, newpos):
+    '''
+    Moves the active piece to the specified new position on the board
+        GameState gs: The current Game State object
+        Piece activePiece: The piece which is moving to a new position
+        Tuple newpos: The position to which the active piece is moving
+    '''
+    gs.updateBoard(activePiece, gs.getBoard()[newpos[0]][newpos[1]])
+    gs.nextTurn()
+    return gs
 
 def main():
     #Initialize the game
@@ -140,6 +150,7 @@ def main():
     holdingRMB = False
 
     pieceActive = False
+    activePiece = None
     activeValidMoves = []
     xpos = 0
     ypos = 0
@@ -163,18 +174,26 @@ def main():
                     file = xpos // SQ_SIZE
                     print("position: {a} ({b}{c}), button: {d}".format(a=e.pos, 
                         b=fd[file], c=rd[rank], d=e.button))
-                    
-                    if not holdingRMB:
+
+                    if not pieceActive:
                         if (gs.whitesTurn() and gs.getBoard()[rank][file].getColour() == "w") or \
                         (not gs.whitesTurn() and gs.getBoard()[rank][file].getColour() == "b"):
                             pieceActive = True
-                            activeValidMoves = gs.getBoard()[rank][file].checkValidMoves(gs.getBoard())
+                            activePiece = gs.getBoard()[rank][file]
+                            activeValidMoves = activePiece.checkValidMoves(gs.getBoard())
                             print(activeValidMoves)
                         else:
                             pieceActive = False
+                    else:
+                        if (rank, file) in activeValidMoves:
+                            gs = movePiece(gs, activePiece, (rank, file))
+                        pieceActive = False
+                        activePiece = None
                         
                 elif e.button == 3: #Right Mouse Button
                     holdingRMB = True
+                    pieceActive = False
+                    activePiece = None
 
             elif e.type == pg.MOUSEBUTTONUP:
                 if e.button == 1:
@@ -186,6 +205,10 @@ def main():
                     else:
                         print("Moved from {a}{b} to {c}{d}".format(a=fd[file], 
                             b=rd[rank], c=fd[upfile], d=rd[uprank]))
+                        if pieceActive and (uprank, upfile) in activeValidMoves:
+                            gs = movePiece(gs, activePiece, (uprank, upfile))
+                            pieceActive = False
+                            activePiece = None
 
                 elif e.button == 3:
                     holdingRMB = False
