@@ -20,12 +20,15 @@ class Piece(ABC):
     def getColour(self):
         return self.colour
 
+    def getPos(self):
+        return self.pos
+
     def move(self):
         self.moved = True
         return
 
-    def setPos(self, r, c):
-        self.pos = (r, c)
+    def setPos(self, pos):
+        self.pos = pos
         return
 
     @abstractmethod
@@ -116,7 +119,7 @@ def checkStraights(r, f, colour, board):
         else:
             break
     # Checking downwards in the file
-    for i in range(r, 7):
+    for i in range(r+1, 8):
         c = board[i][f].getColour()
         if c != colour:
             straightMoves.append((i, f))
@@ -134,7 +137,7 @@ def checkStraights(r, f, colour, board):
         else:
             break
     # Checking to the right in the rank
-    for i in range(f, 7):
+    for i in range(f+1, 8):
         c = board[r][i].getColour()
         if c != colour:
             straightMoves.append((r, i))
@@ -146,31 +149,35 @@ def checkStraights(r, f, colour, board):
 
 class Pawn(Piece):
     def checkValidMoves(self, board):
+        # TODO: En passant, promoting
         validMoves = []
+        blocked = True #Whether or not there is a piece directly in front of it
         # White Pawn
         if self.colour == "w":
             if board[self.pos[0]-1][self.pos[1]].getName() == "--":
                 validMoves.append((self.pos[0]-1, self.pos[1]))
+                blocked = False
             if self.pos[1] > 0:
                 if board[self.pos[0]-1][self.pos[1]-1].getColour() == "b":
                     validMoves.append((self.pos[0]-1, self.pos[1]-1))
             if self.pos[1] < 7:
                 if board[self.pos[0]-1][self.pos[1]+1].getColour() == "b":
                     validMoves.append((self.pos[0]+1, self.pos[1]-1))
-            if not self.moved:
+            if not self.moved and not blocked:
                 if board[self.pos[0]-2][self.pos[1]].getName() == "--":
                     validMoves.append((self.pos[0]-2, self.pos[1]))
         # Black Pawn
         else:
             if board[self.pos[0]+1][self.pos[1]].getName() == "--":
                 validMoves.append((self.pos[0]+1, self.pos[1]))
+                blocked = False
             if self.pos[1] > 0:
                 if board[self.pos[0]+1][self.pos[1]-1].getColour() == "w":
                     validMoves.append((self.pos[0]+1, self.pos[1]-1))
             if self.pos[1] < 7:
                 if board[self.pos[0]+1][self.pos[1]+1].getColour() == "w":
                     validMoves.append((self.pos[0]+1, self.pos[1]+1))
-            if not self.moved:
+            if not self.moved and not blocked:
                 if board[self.pos[0]+2][self.pos[1]].getName() == "--":
                     validMoves.append((self.pos[0]+2, self.pos[1]))
 
@@ -219,6 +226,7 @@ class Queen(Piece):
         return diagonals + straights
 
 class King(Piece):
+    #TODO: Castling
     def checkValidMoves(self, board):
         validMoves = []
         r = self.pos[0]
