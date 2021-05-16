@@ -23,6 +23,9 @@ class Piece(ABC):
     def getPos(self):
         return self.pos
 
+    def hasMoved(self):
+        return self.moved
+
     def move(self):
         self.moved = True
         return
@@ -150,36 +153,38 @@ def checkStraights(r, f, colour, board):
 class Pawn(Piece):
     def checkValidMoves(self, board):
         # TODO: En passant, promoting
+        r = self.pos[0]
+        f = self.pos[1]
         validMoves = []
         blocked = True #Whether or not there is a piece directly in front of it
         # White Pawn
         if self.colour == "w":
-            if board[self.pos[0]-1][self.pos[1]].getName() == "--":
-                validMoves.append((self.pos[0]-1, self.pos[1]))
+            if board[r-1][f].getName() == "--":
+                validMoves.append((r-1, f))
                 blocked = False
-            if self.pos[1] > 0:
-                if board[self.pos[0]-1][self.pos[1]-1].getColour() == "b":
-                    validMoves.append((self.pos[0]-1, self.pos[1]-1))
-            if self.pos[1] < 7:
-                if board[self.pos[0]-1][self.pos[1]+1].getColour() == "b":
-                    validMoves.append((self.pos[0]+1, self.pos[1]-1))
+            if f > 0:
+                if board[r-1][f-1].getColour() == "b" or board[r-1][f-1].getName()[1] == "e":
+                    validMoves.append((r-1, f-1))
+            if f < 7:
+                if board[r-1][f+1].getColour() == "b" or board[r-1][f+1].getName()[1] == "e":
+                    validMoves.append((r-1, f+1))
             if not self.moved and not blocked:
-                if board[self.pos[0]-2][self.pos[1]].getName() == "--":
-                    validMoves.append((self.pos[0]-2, self.pos[1]))
+                if board[r-2][f].getName() == "--":
+                    validMoves.append((r-2, f))
         # Black Pawn
         else:
-            if board[self.pos[0]+1][self.pos[1]].getName() == "--":
-                validMoves.append((self.pos[0]+1, self.pos[1]))
+            if board[r+1][f].getName() == "--":
+                validMoves.append((r+1, f))
                 blocked = False
-            if self.pos[1] > 0:
-                if board[self.pos[0]+1][self.pos[1]-1].getColour() == "w":
-                    validMoves.append((self.pos[0]+1, self.pos[1]-1))
-            if self.pos[1] < 7:
-                if board[self.pos[0]+1][self.pos[1]+1].getColour() == "w":
-                    validMoves.append((self.pos[0]+1, self.pos[1]+1))
+            if f > 0:
+                if board[r+1][f-1].getColour() == "w" or board[r+1][f-1].getName()[1] == "e":
+                    validMoves.append((r+1, f-1))
+            if f < 7:
+                if board[r+1][f+1].getColour() == "w" or board[r+1][f+1].getName()[1] == "e":
+                    validMoves.append((r+1, f+1))
             if not self.moved and not blocked:
-                if board[self.pos[0]+2][self.pos[1]].getName() == "--":
-                    validMoves.append((self.pos[0]+2, self.pos[1]))
+                if board[r+2][f].getName() == "--":
+                    validMoves.append((r+2, f))
 
         return validMoves
 
@@ -209,7 +214,6 @@ class Bishop(Piece):
         r = self.pos[0]
         f = self.pos[1]
         return checkDiagonals(r, f, self.colour, board)
-
 
 class Rook(Piece):
     def checkValidMoves(self, board):
