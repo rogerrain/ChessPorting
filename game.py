@@ -44,7 +44,7 @@ def drawPieces(screen, board, images):
     for r in range(len(board)):
         for c in range(len(board)):
             name = board[r][c].getName()
-            if name != "--":
+            if name[0] != "-":
                 screen.blit(images[name], pg.Rect(c*SQ_SIZE, r*SQ_SIZE, SQ_SIZE, SQ_SIZE))
 
     return
@@ -119,6 +119,23 @@ def movePiece(gs, activePiece, newpos):
         Piece activePiece: The piece which is moving to a new position
         Tuple newpos: The position to which the active piece is moving
     '''
+    # Checking if move is an En Passant
+    if activePiece.getName()[1] == "p" and gs.getBoard()[newpos[0]][newpos[1]].getName()[1] == "e":
+        gs.enPassant()
+
+    # Forgetting previous En Passant vulnerabilities
+    if gs.isVuln():
+        gs.disableEnPassant()
+
+    # Setting up En Passants if applicable
+    if activePiece.getName()[1] == "p" and not activePiece.hasMoved():
+        if ((activePiece.getPos()[1] - newpos[1]) % 2) == 0: # If the pawn moved two squares
+            if activePiece.getColour() == "w":
+                gs.enableEnPassant((newpos[0]+1, newpos[1]))
+            else:
+                gs.enableEnPassant((newpos[0]-1, newpos[1]))
+
+    # Normal board update
     gs.updateBoard(activePiece, gs.getBoard()[newpos[0]][newpos[1]])
     gs.nextTurn()
     return gs

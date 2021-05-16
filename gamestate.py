@@ -21,6 +21,8 @@ class GameState:
     def __init__(self):
         self.board = []         #List of Pieces
         self.whiteToMove = True
+        self.tempVuln = (-1, -1)
+        self.vuln = False
 
     def makeDefaultBoard(self):
         default = [
@@ -45,11 +47,43 @@ class GameState:
     def getBoard(self):
         return self.board
 
+    def isVuln(self):
+        return self.vuln
+
     def nextTurn(self):
         self.whiteToMove = not self.whiteToMove
 
     def whitesTurn(self):
         return self.whiteToMove
+
+    def enableEnPassant(self, pos):
+        r = pos[0]
+        f = pos[1]
+        self.tempVuln = (r, f)
+        self.vuln = True
+        self.board[r][f] = piece.Space("-e")
+        self.board[r][f].setPos((r, f))
+        return
+
+    def disableEnPassant(self):
+        r = self.tempVuln[0]
+        f = self.tempVuln[1]
+        if self.board[r][f].getName()[0] == "-":
+            self.board[r][f] = piece.Space("--")
+            self.board[r][f].setPos((r, f))
+        self.tempVuln = (-1, -1)
+        self.vuln = False
+        return
+
+    def enPassant(self):
+        if self.whiteToMove:
+            direction = 1
+        else:
+            direction = -1
+        r = self.tempVuln[0] + direction
+        f = self.tempVuln[1]
+        self.board[r][f] = piece.Space("--")
+        self.board[r][f].setPos((r, f))
 
     def updateBoard(self, p1, p2):
         '''
