@@ -1,4 +1,5 @@
 import pygame as pg
+from pygame.math import enable_swizzling
 from gamestate import GameState
 
 #Globals
@@ -45,7 +46,7 @@ def drawPieces(screen, board, images):
         for c in range(len(board)):
             name = board[r][c].getName()
             if name[0] != "-":
-                screen.blit(images[name], pg.Rect(c*SQ_SIZE, r*SQ_SIZE, SQ_SIZE, SQ_SIZE))
+                screen.blit(images[name], (c*SQ_SIZE, r*SQ_SIZE))
 
     return
 
@@ -94,8 +95,42 @@ def pieceFollowMouse(screen, name, images, x, y):
         Int x: The x-position of the mouse on the screen
         Int y: The y-position of the mouse on the screen
     '''
-    screen.blit(images[name], pg.Rect((x-(SQ_SIZE//2)), (y-(SQ_SIZE//2)), SQ_SIZE, SQ_SIZE))
+    screen.blit(images[name], (x-(SQ_SIZE//2), (y-(SQ_SIZE//2))))
     return
+
+def drawPromotionChoices(screen, promotionSquare, images):
+    '''
+    Draws the choices for promotion onto the screen
+        pygame.Surface screen: The display window for the application
+        Tuple promotionSquare: The square that the promoted pawn will end up at
+        Dict images: A dictionary containing path locations for images
+    '''
+    r = promotionSquare[0]
+    f = promotionSquare[1]
+    pieces = ["Q", "N", "R", "B"]
+    promotionOptions = []
+
+    fade = pg.Surface((WIDTH, HEIGHT))
+    fade.set_alpha(150)
+    fade.fill((255, 255, 255))
+    screen.blit(fade, (0, 0))
+
+    if r == 0:  # A white pawn is promoting
+        for i in range(4):
+            name = "w" + pieces[i]
+            m = (f*SQ_SIZE + (SQ_SIZE // 2), i*SQ_SIZE + (SQ_SIZE // 2))
+            pg.draw.circle(screen, pg.Color("gray"), m, SQ_SIZE // 2)
+            screen.blit(images[name], (f*SQ_SIZE, i*SQ_SIZE))
+            promotionOptions.append((i, f))
+    else:       # A black pawn is promoting
+        for i in range(4):
+            name = "b" + pieces[i]
+            m = (f*SQ_SIZE + (SQ_SIZE // 2), (7-i)*SQ_SIZE + (SQ_SIZE // 2))
+            pg.draw.circle(screen, pg.Color("gray"), m, SQ_SIZE // 2)
+            screen.blit(images[name], (f*SQ_SIZE, (7-i)*SQ_SIZE))
+            promotionOptions.append((7-i, f))
+
+    return promotionOptions
 
 def squareDict(order, whitePOV):
     '''
@@ -140,6 +175,29 @@ def movePiece(gs, activePiece, newpos):
     gs.nextTurn()
     return gs
 
+def promotePawn(gs, activePiece, promotionSquare, rank):
+    '''
+    Promoting the active pawn to a piece determined by the rank
+        GameState gs: The current Game State object
+        Piece activePiece: The piece which is being promoted
+    '''
+    r = activePiece.getPos()[0]
+    f = activePiece.getPos()[1]
+    colour = activePiece.getColour()
+    if rank in [0, 7]:
+        t = "Q"
+    elif rank in [1, 6]:
+        t = "N"
+    elif rank in [2, 5]:
+        t = "R"
+    else:
+        t = "B"
+    name = colour + t
+    gs.promote(activePiece, name)
+    gs = movePiece(gs, gs.getBoard()[r][f], promotionSquare)
+
+    return gs
+
 def main():
     #Initialize the game
     pg.init()
@@ -171,6 +229,9 @@ def main():
     activeValidMoves = []
     xpos = 0
     ypos = 0
+    promoting = False
+    promotionSquare = (-1, -1)
+    promotionOptions = []
 
     images = loadImages()
     drawBoard(screen, colours)
@@ -203,11 +264,21 @@ def main():
                             pieceActive = False
                     else:
                         if (rank, file) in activeValidMoves:
-                            gs = movePiece(gs, activePiece, (rank, file))
-                        pieceActive = False
-                        activePiece = None
+                            # Check for a promoting pawn
+                            if activePiece.getName()[1] == "p" and rank in [0, 7]:
+                                promoting = True
+                                activeValidMoves = []
+                                promotionSquare = (rank, file)
+                            else:
+                                gs = movePiece(gs, activePiece, (rank, file))
+                        if not promoting:
+                            pieceActive = False
+                            activePiece = None
+                        else:
+                            # Promote pawn if applicable
+                            pass
                         
-                elif e.button == 3: #Right Mouse Button
+                elif e.button == 3: # Right Mouse Button
                     holdingRMB = True
                     pieceActive = False
                     activePiece = None
@@ -219,13 +290,32 @@ def main():
                     upfile = e.pos[0]//SQ_SIZE
                     if rank == uprank and file == upfile:
                         print("same square")
+                        if promoting:
+                            if (rank, file) in promotionOptions:
+                                gs = promotePawn(gs, activePiece, promotionSquare, rank)
+                            promoting = False
+                            promotionSquare = (-1, -1)
+                            pieceActive = False
+                            activePiece = None
                     else:
                         print("Moved from {a}{b} to {c}{d}".format(a=fd[file], 
                             b=rd[rank], c=fd[upfile], d=rd[uprank]))
-                        if pieceActive and (uprank, upfile) in activeValidMoves:
-                            gs = movePiece(gs, activePiece, (uprank, upfile))
+                        if promoting:
+                            promoting = False
+                            promotionSquare = (-1, -1)
                             pieceActive = False
                             activePiece = None
+                        else:
+                            if pieceActive and (uprank, upfile) in activeValidMoves:
+                                # Check for a promoting pawn
+                                if activePiece.getName()[1] == "p" and uprank in [0, 7]:
+                                    promoting = True
+                                    activeValidMoves = []
+                                    promotionSquare = (uprank, upfile)
+                                else:
+                                    gs = movePiece(gs, activePiece, (uprank, upfile))
+                                    pieceActive = False
+                                    activePiece = None
 
                 elif e.button == 3:
                     holdingRMB = False
@@ -240,13 +330,16 @@ def main():
 
         # Draw extra things on top of those
         if pieceActive:
-            drawGhost(screen, rank, file)
-            drawValidMoves(screen, activeValidMoves)
-            name = gs.getBoard()[rank][file].getName()
-            if holdingLMB:
-                pieceFollowMouse(screen, name, images, xpos, ypos)
+            if promoting:
+                promotionOptions = drawPromotionChoices(screen, promotionSquare, images)
             else:
-                screen.blit(images[name], pg.Rect(file*SQ_SIZE, rank*SQ_SIZE, SQ_SIZE, SQ_SIZE))
+                drawGhost(screen, rank, file)
+                drawValidMoves(screen, activeValidMoves)
+                name = gs.getBoard()[rank][file].getName()
+                if holdingLMB:
+                    pieceFollowMouse(screen, name, images, xpos, ypos)
+                else:
+                    screen.blit(images[name], pg.Rect(file*SQ_SIZE, rank*SQ_SIZE, SQ_SIZE, SQ_SIZE))
 
         clock.tick(MAX_FPS)
         pg.display.flip()

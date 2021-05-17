@@ -152,7 +152,6 @@ def checkStraights(r, f, colour, board):
 
 class Pawn(Piece):
     def checkValidMoves(self, board):
-        # TODO: En passant, promoting
         r = self.pos[0]
         f = self.pos[1]
         validMoves = []

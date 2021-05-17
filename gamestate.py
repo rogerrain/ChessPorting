@@ -85,6 +85,17 @@ class GameState:
         self.board[r][f] = piece.Space("--")
         self.board[r][f].setPos((r, f))
 
+    def promote(self, p, name):
+        '''
+        Promotes a piece p to a piece corresponding to name
+            Piece p: The piece being promoted
+            String name: The name of the new piece
+        '''
+        r = p.getPos()[0]
+        f = p.getPos()[1]
+        self.board[r][f] = makePiece(name)
+        self.board[r][f].setPos((r, f))
+
     def updateBoard(self, p1, p2):
         '''
         Moves the piece p1 to the position of piece p2 and deletes p2
