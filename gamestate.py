@@ -23,6 +23,11 @@ class GameState:
         self.whiteToMove = True
         self.tempVuln = (-1, -1)
         self.vuln = False
+        self.kingpos = []
+        self.whiteInCheck = False
+        self.blackInCheck = False
+        self.whiteMoves = set()
+        self.blackMoves = set()
 
     def makeDefaultBoard(self):
         default = [
@@ -43,12 +48,28 @@ class GameState:
         for r in range(8):
             for c in range(8):
                 self.board[r][c].setPos((r, c))
+            
+        self.kingpos = [(7, 4), (0, 4)]
+        self.updatePotentialMoves()
+        return
 
     def getBoard(self):
         return self.board
 
     def isVuln(self):
         return self.vuln
+
+    def inCheck(self, colour):
+        if colour == "w":
+            return self.whiteInCheck
+        else:
+            return self.blackInCheck
+            
+    def getPotentialMoves(self, colour):
+        if colour == "w":
+            return self.whiteMoves
+        else:
+            return self.blackMoves
 
     def nextTurn(self):
         self.whiteToMove = not self.whiteToMove
@@ -96,12 +117,49 @@ class GameState:
         self.board[r][f] = makePiece(name)
         self.board[r][f].setPos((r, f))
 
+    def castle(self, colour, file):
+        '''
+        Moves the rook to the appropriate square while castling
+            String colour: Which player is castling
+            Int file: Where the king is moving (which side to castle to)
+        '''
+        if file == 2:   # Queenside Castling
+            nf = 3
+            of = 0
+        else:
+            nf = 5
+            of = 7
+        if colour == "w":
+            r = 7
+        else:
+            r = 0
+        name = colour + "R"
+        self.board[r][nf] = makePiece(name)
+        self.board[r][nf].setPos((r, nf))
+        self.board[r][of] = piece.Space("--")
+        self.board[r][of].setPos((r, of))
+        return
+
+    def updatePotentialMoves(self):
+        self.whiteMoves = set()
+        self.blackMoves = set()
+        for r in self.board:
+            for p in r:
+                if p.getColour() == "w":
+                    for move in p.checkValidMoves(self.board):
+                        self.whiteMoves.add(move)
+                elif p.getColour() == "b":
+                    for move in p.checkValidMoves(self.board):
+                        self.blackMoves.add(move)
+        return
+
     def updateBoard(self, p1, p2):
         '''
         Moves the piece p1 to the position of piece p2 and deletes p2
             Piece p1: The active piece which is moving
             Piece p2: The piece being replaced
         '''
+        name = p1.getName()
         pos1 = p1.getPos()
         pos2 = p2.getPos()
         p2 = None
@@ -110,4 +168,19 @@ class GameState:
         p1.move()
         self.board[pos1[0]][pos1[1]] = piece.Space("--")
         self.board[pos1[0]][pos1[1]].setPos(pos1)
+
+        # Update king position
+        if name[1] == "K":
+            if name[0] == "w":
+                i = 0
+            else:
+                i = 1
+            self.kingpos[i] = pos2
+
+        self.updatePotentialMoves()
+
+        # Check for a side in check
+        self.whiteInCheck = self.kingpos[0] in self.blackMoves
+        self.blackInCheck = self.kingpos[1] in self.whiteMoves
+
         return

@@ -248,6 +248,17 @@ class King(Piece):
                 if board[move[0]][move[1]].getColour() != self.colour:
                     validMoves.append(move)
 
+        # Checking for castling
+        if not self.moved:
+            if board[r][5].getName() == "--" and board[r][6].getName() == "--":
+                corner = board[r][7]
+                if corner.getName()[1] == "R" and not corner.hasMoved():
+                    validMoves.append((r, 6))
+            if board[r][3].getName() == "--" and board[r][2].getName() == "--" and board[r][1].getName() == "--":
+                corner = board[r][0]
+                if corner.getName()[1] == "R" and not corner.hasMoved():
+                    validMoves.append((r, 2))
+
         return validMoves
 
 # Not an actual chess piece, just an empty space on the board

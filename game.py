@@ -1,6 +1,7 @@
 import pygame as pg
-from pygame.math import enable_swizzling
+# from pygame.math import enable_swizzling
 from gamestate import GameState
+import copy
 
 #Globals
 WIDTH = 720
@@ -154,8 +155,10 @@ def movePiece(gs, activePiece, newpos):
         Piece activePiece: The piece which is moving to a new position
         Tuple newpos: The position to which the active piece is moving
     '''
+    activeType = activePiece.getName()[1]
+
     # Checking if move is an En Passant
-    if activePiece.getName()[1] == "p" and gs.getBoard()[newpos[0]][newpos[1]].getName()[1] == "e":
+    if activeType == "p" and gs.getBoard()[newpos[0]][newpos[1]].getName()[1] == "e":
         gs.enPassant()
 
     # Forgetting previous En Passant vulnerabilities
@@ -163,12 +166,17 @@ def movePiece(gs, activePiece, newpos):
         gs.disableEnPassant()
 
     # Setting up En Passants if applicable
-    if activePiece.getName()[1] == "p" and not activePiece.hasMoved():
+    if activeType == "p" and not activePiece.hasMoved():
         if ((activePiece.getPos()[1] - newpos[1]) % 2) == 0: # If the pawn moved two squares
             if activePiece.getColour() == "w":
                 gs.enableEnPassant((newpos[0]+1, newpos[1]))
             else:
                 gs.enableEnPassant((newpos[0]-1, newpos[1]))
+
+    #Checking for castling
+    if activeType == "K" and not activePiece.hasMoved():
+        if newpos[1] in [2, 6]:
+            gs.castle(activePiece.getColour(), newpos[1])
 
     # Normal board update
     gs.updateBoard(activePiece, gs.getBoard()[newpos[0]][newpos[1]])
@@ -198,6 +206,43 @@ def promotePawn(gs, activePiece, promotionSquare, rank):
 
     return gs
 
+def checkKingSafety(gs, colour, activepos, newpos):
+    '''
+    Checks whether or not the given move would leave the player's king immediately vulnerable
+        GameState gs: The current Game State object
+        String colour: The colour of the player whose turn it is
+        Tuple activepos: The current position of the piece being moved
+        Tuple newpos: The new position of the active piece if the move is played
+    '''
+    ts = copy.deepcopy(gs)
+    ts = movePiece(ts, ts.getBoard()[activepos[0]][activepos[1]], newpos)
+    
+    return not ts.inCheck(colour)
+
+def filterValidMoves(gs, activePiece, moves):
+    '''
+    Given a list of moves, returns all moves where the king is not under attack
+        GameState gs: The current Game State object
+        Piece activePiece: The piece whose moves are being validated
+        List moves: The moves to check the validity of
+    '''
+    activePos = (activePiece.getPos())
+    colour = activePiece.getColour()
+    safeMoves = []
+    for move in moves:
+        if checkKingSafety(gs, colour, activePos, move):
+            safeMoves.append(move)
+
+    # Check for castling while in check
+    if activePiece.getName()[1] == "K" and not activePiece.hasMoved():
+        if gs.inCheck(colour):
+            safeMoves = [m for m in safeMoves if m[1] not in [2, 6]]
+
+    return safeMoves
+
+def gameStatus(gs):
+    pass
+
 def main():
     #Initialize the game
     pg.init()
@@ -226,12 +271,14 @@ def main():
 
     pieceActive = False
     activePiece = None
+    activePossibleMoves = []
     activeValidMoves = []
     xpos = 0
     ypos = 0
     promoting = False
     promotionSquare = (-1, -1)
     promotionOptions = []
+    clickedWhilePromoting = False
 
     images = loadImages()
     drawBoard(screen, colours)
@@ -253,12 +300,16 @@ def main():
                     print("position: {a} ({b}{c}), button: {d}".format(a=e.pos, 
                         b=fd[file], c=rd[rank], d=e.button))
 
+                    # Making sure the player left clicks the piece they want to promote to
+                    clickedWhilePromoting = promoting
+
                     if not pieceActive:
                         if (gs.whitesTurn() and gs.getBoard()[rank][file].getColour() == "w") or \
                         (not gs.whitesTurn() and gs.getBoard()[rank][file].getColour() == "b"):
                             pieceActive = True
                             activePiece = gs.getBoard()[rank][file]
-                            activeValidMoves = activePiece.checkValidMoves(gs.getBoard())
+                            activePossibleMoves = activePiece.checkValidMoves(gs.getBoard())
+                            activeValidMoves = filterValidMoves(gs, activePiece, activePossibleMoves)
                             print(activeValidMoves)
                         else:
                             pieceActive = False
@@ -274,9 +325,6 @@ def main():
                         if not promoting:
                             pieceActive = False
                             activePiece = None
-                        else:
-                            # Promote pawn if applicable
-                            pass
                         
                 elif e.button == 3: # Right Mouse Button
                     holdingRMB = True
@@ -289,8 +337,8 @@ def main():
                     uprank = e.pos[1]//SQ_SIZE
                     upfile = e.pos[0]//SQ_SIZE
                     if rank == uprank and file == upfile:
-                        print("same square")
-                        if promoting:
+                        # Same square was pressed and released
+                        if promoting and clickedWhilePromoting:
                             if (rank, file) in promotionOptions:
                                 gs = promotePawn(gs, activePiece, promotionSquare, rank)
                             promoting = False
