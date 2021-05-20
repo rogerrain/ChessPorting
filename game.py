@@ -227,16 +227,37 @@ def filterValidMoves(gs, activePiece, moves):
         List moves: The moves to check the validity of
     '''
     activePos = (activePiece.getPos())
+    r = activePos[0]
+    f = activePos[1]
     colour = activePiece.getColour()
     safeMoves = []
+    if colour == "w":
+        relevantMoves = gs.getPotentialMoves("b")
+    else:
+        relevantMoves = gs.getPotentialMoves("w")
     for move in moves:
         if checkKingSafety(gs, colour, activePos, move):
             safeMoves.append(move)
 
     # Check for castling while in check
     if activePiece.getName()[1] == "K" and not activePiece.hasMoved():
+        # Cannot castle while in check
         if gs.inCheck(colour):
             safeMoves = [m for m in safeMoves if m[1] not in [2, 6]]
+        else:
+            # Check if kingside castling is safe
+            squares = [(r, f+1), (r, f+2)]
+            for square in squares:
+                if square in relevantMoves:
+                    safeMoves = [m for m in safeMoves if m[1] != 6]
+                    break
+
+            # Check if queenside castling is safe
+            squares = [(r, f-1), (r, f-2), (r, f-3)]
+            for square in squares:
+                if square in relevantMoves:
+                    safeMoves = [m for m in safeMoves if m[1] != 2]
+                    break
 
     return safeMoves
 
