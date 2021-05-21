@@ -229,7 +229,6 @@ class Queen(Piece):
         return diagonals + straights
 
 class King(Piece):
-    #TODO: Castling
     def checkValidMoves(self, board):
         validMoves = []
         r = self.pos[0]

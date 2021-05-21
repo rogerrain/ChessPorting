@@ -124,20 +124,20 @@ class GameState:
             Int file: Where the king is moving (which side to castle to)
         '''
         if file == 2:   # Queenside Castling
-            nf = 3
-            of = 0
+            newfile = 3
+            oldfile = 0
         else:
-            nf = 5
-            of = 7
+            newfile = 5
+            oldfile = 7
         if colour == "w":
             r = 7
         else:
             r = 0
         name = colour + "R"
-        self.board[r][nf] = makePiece(name)
-        self.board[r][nf].setPos((r, nf))
-        self.board[r][of] = piece.Space("--")
-        self.board[r][of].setPos((r, of))
+        self.board[r][newfile] = makePiece(name)
+        self.board[r][newfile].setPos((r, newfile))
+        self.board[r][oldfile] = piece.Space("--")
+        self.board[r][oldfile].setPos((r, oldfile))
         return
 
     def updatePotentialMoves(self):
