@@ -261,18 +261,51 @@ def filterValidMoves(gs, activePiece, moves):
 
     return safeMoves
 
-def gameStatus(gs):
-    pass
+def updateGameStatus(gs):
+    '''
+    Returns the status of the game; i.e. playing, check, checkmate, stalemate
+        GameState gs: The current Game State object
+    '''
+    if gs.whitesTurn():
+        colour = "w"
+    else:
+        colour = "b"
+    board = gs.getBoard()
+
+    # Check if there are any moves that can be made by the active player
+    canMove = False
+    for r in board:
+        if not canMove:
+            for p in r:
+                if p.getColour() == colour:
+                    if len(filterValidMoves(gs, p, p.checkValidMoves(board))) > 0:
+                        canMove = True
+                        break
+    
+    # Check if the active side is in check
+    check = gs.inCheck(colour)
+
+    if check:
+        if canMove:
+            return "+"  # Check
+        else:
+            return "#"  # Checkmate
+    else:
+        if canMove:
+            return "."  # Playing
+        else:
+            return "-"  # Stalemate
 
 def main():
-    #Initialize the game
+    # Initialize the game
     pg.init()
     screen = pg.display.set_mode((WIDTH, HEIGHT))
     pg.display.set_caption("Python Chess")
     clock = pg.time.Clock()
-    colours = changeTheme(1) #Default Colour Theme
+    colours = changeTheme(1) # Default Colour Theme
     gs = GameState()
     gs.makeDefaultBoard()
+    status = "."    # Whether in check, checkmate, stalemate, or playing
 
     # Creating a dictionary for squares based on the position on the window
     ranks = "87654321"
@@ -343,6 +376,8 @@ def main():
                                 promotionSquare = (rank, file)
                             else:
                                 gs = movePiece(gs, activePiece, (rank, file))
+                                status = updateGameStatus(gs)
+                                print(status)
                         if not promoting:
                             pieceActive = False
                             activePiece = None
@@ -383,6 +418,8 @@ def main():
                                     promotionSquare = (uprank, upfile)
                                 else:
                                     gs = movePiece(gs, activePiece, (uprank, upfile))
+                                    status = updateGameStatus(gs)
+                                    print(status)
                                     pieceActive = False
                                     activePiece = None
 
